@@ -1,0 +1,3 @@
+This script uses a traditional GAN, or one of its common variants, to generate images using the MNIST dataset. 
+Features in this script in this script include: quadratic neurons, per-epoch loss curve display for all networks,
+and handling interrupted training.  
