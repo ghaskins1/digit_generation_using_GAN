@@ -7,7 +7,7 @@ Created on Tue Mar  3 13:58:01 2020
 """
 
 import numpy as np
-from keras.datasets import mnist
+from tensorflow.keras.datasets import mnist
 from tqdm import tqdm
 
 import os
@@ -62,9 +62,9 @@ class mnist_digit_generator(object):
             
             gen_img = self.generator(input_noise)
             pred = self.classifier(gen_img)
-            self.GAN = Model(inputs=input_noise,outputs=pred)
+            self.class_GAN = Model(inputs=input_noise,outputs=pred)
             
-            self.classGAN.compile(loss='categorical_crossentropy',
+            self.class_GAN.compile(loss='categorical_crossentropy',
                    optimizer=self.optimizer,
                    metrics=['acc'])
           
@@ -198,9 +198,11 @@ class mnist_digit_generator(object):
         if datatype == 'Validation':            
             idxs = np.random.randint(0.8*self.trainX.shape[0],self.trainX.shape[0],self.batch_size)           
         
+        batch_labels = np.zeros(shape=(self.batch_size,11))
+        batch_labels[:,:10] = self.trainY[idxs]
         if self.classGAN:    
             
-            output = [self.trainX[idxs],self.trainY[idxs]]
+            output = [self.trainX[idxs],batch_labels]
         else:
             
             output = self.trainX[idxs]
@@ -282,7 +284,7 @@ class mnist_digit_generator(object):
             count = 0       
                                 
             fake_labels = np.zeros(shape=(self.batch_size,11))
-            fake_labels[:,10] = np.ones(shape=(self.batch_size,1))
+            fake_labels[:,10] = np.ones(shape=(self.batch_size,))
             
             for epoch in range(1,self.epochs+1):
                 
@@ -306,14 +308,14 @@ class mnist_digit_generator(object):
                     gen_imgs = self.generator.predict(noise)
                     
                     img_arr[:self.batch_size,:,:,0] = real_imgs
-                    img_arr[self.batch_size:,:,:,0] = gen_imgs
+                    img_arr[self.batch_size:,:,:,:] = gen_imgs
                     class_labels[:self.batch_size,:] = real_labels
                     class_labels[:self.batch_size,:] = fake_labels
                                         
                     classifier_loss = self.classifier.train_on_batch(img_arr,class_labels)
                     classifier_accs.append(classifier_loss[1])
                                         
-                    generator_loss = self.GAN.train_on_batch(noise,real_labels)
+                    generator_loss = self.class_GAN.train_on_batch(noise,real_labels)
                     generator_losses.append(generator_loss[0])
                                         
                     val_real_imgs,val_real_labels = self.data_generator('Validation') 
@@ -322,14 +324,14 @@ class mnist_digit_generator(object):
                     val_gen_imgs = self.generator.predict(val_noise)
                     
                     val_img_arr[:self.batch_size,:,:,0] = val_real_imgs
-                    val_img_arr[self.batch_size:,:,:,0] = val_gen_imgs
+                    val_img_arr[self.batch_size:,:,:,:] = val_gen_imgs
                     val_class_labels[:self.batch_size,:] = val_real_labels
                     val_class_labels[:self.batch_size,:] = fake_labels
                                         
                     val_classifier_loss = self.classifier.train_on_batch(val_img_arr,val_class_labels)
                     val_classifier_accs.append(val_classifier_loss[1])
                                         
-                    val_generator_loss = self.GAN.test_on_batch(val_noise,val_real_labels)
+                    val_generator_loss = self.class_GAN.test_on_batch(val_noise,val_real_labels)
                     val_generator_losses.append(val_generator_loss[0])
                     
 
@@ -787,7 +789,7 @@ class mnist_digit_generator(object):
         if len(gen_imgs.shape) == 4:
             
             gen_imgs = gen_imgs[:,:,:,0]
-        
+
         for i in range(1,gen_imgs.shape[0]+1):
             
             plt.imshow(gen_imgs[i])
@@ -797,7 +799,7 @@ class mnist_digit_generator(object):
 
            
     
-digit_generator = mnist_digit_generator(epochs=5,batch_size=512,model_dir='/Users/granthaskins/Downloads/model_dir',data_dir='/Users/granthaskins/Downloads/data_dir',classGAN=False,training_interrupted=False,quad_neuron=False)   
+digit_generator = mnist_digit_generator(epochs=5,batch_size=512,model_dir='your_dir_here',data_dir='your_dir_here',classGAN=True,training_interrupted=False,quad_neuron=True)   
 digit_generator.train_networks()    
         
 
